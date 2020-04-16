@@ -1,13 +1,21 @@
 const express = require('express');
-
 const Sequelize=require('sequelize');
+var bodyParser = require('body-parser');
 
 const app=express();
-
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static('public'));
 const db=new Sequelize({
     dialect: 'sqlite' ,
     storage: __dirname+'/test.db'
 })
+
+n =  new Date();
+y = n.getFullYear();
+m = n.getMonth();
+d = n.getDate()+ 1;
+date= d + "/" + m + "/" + y;
 
 const Tasks=db.define('task',{
     id:{
@@ -17,7 +25,8 @@ const Tasks=db.define('task',{
     },
     title:{
         type:Sequelize.STRING(40),
-        allowNull:false
+        allowNull:false,
+        unique:true
     },
     description:{
         type:Sequelize.STRING(100),
@@ -25,7 +34,7 @@ const Tasks=db.define('task',{
     },
     duedate:{
         type:Sequelize.STRING,
-        allowNull:false
+        defaultValue:date
     },
     status:{
         type:Sequelize.STRING(40),
@@ -38,6 +47,19 @@ const Tasks=db.define('task',{
 }, {
     timestamps: false
   })
+
+  const Notes=db.define('note',{
+    id:{
+        type:Sequelize.INTEGER,
+        primaryKey:true,
+        autoIncrement :true
+    },
+    description:{
+        type:Sequelize.STRING(100),
+        allowNull:false
+    }}, {
+        timestamps: false
+      });
 
   db.sync();
 
@@ -53,12 +75,11 @@ app.post('/todos',(req,res)=>
 {
     db.sync().then(()=>{
      Tasks.create({
-         title:"exercise",
-         description:"stay healthy",
-         duedate:"02-30-2020"
+         title:req.body.taskname,
+         description:req.body.description,
         }).then((task)=> 
         {
-            console.log(req.params);
+            //console.log(req.params);
         // you can now access the newly created user
         res.send(task.dataValues);
         }).catch(function(err)
@@ -93,17 +114,38 @@ app.patch('/todos/:id',(req,res)=>
         console.log(err)
     })
 })
-
-app.get('/todos/4/notes',()=>{
+app.patch('/todos/',(req,res)=>
+{
+    console.log(req);
+    Tasks.update({
+    description:req.body.description,
+    duedate:req.body.date,
+    priority:req.body.priority,
+    status:req.body.status
+   },
+   {
+       where:{title:req.body.taskname
+    }}).catch((err)=>
+    {
+        console.log(err)
+    })
+})
+app.get('/todos',(req,res)=>{
+ res.send(task.title);
+})
+app.get('/todos/:id/notes',()=>{
 
 })
 
-app.post('/todos/4/notes',()=>
+app.post('/todos/:id/notes',()=>
 {
 })
 
 app.get('/',(req,res)=>{
     res.sendFile(__dirname+'/index.html');
+})
+app.get('/edit',(req,res)=>{
+    res.sendFile(__dirname+'/edit.html');
 })
 
 app.listen(3030);
